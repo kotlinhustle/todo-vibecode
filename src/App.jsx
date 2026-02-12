@@ -15,6 +15,7 @@ export default function App() {
 
   const [text, setText] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [authInfo, setAuthInfo] = useState("");
   const [authError, setAuthError] = useState("");
   const [remoteError, setRemoteError] = useState("");
@@ -289,17 +290,17 @@ export default function App() {
     cancelEditing();
   }
 
-  async function sendMagicLink() {
+  async function signIn() {
     if (!isSupabaseReady) return;
-    const trimmed = email.trim();
-    if (!trimmed) return;
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) return;
 
     setAuthError("");
     setAuthInfo("");
 
-    const { error } = await supabase.auth.signInWithOtp({
-      email: trimmed,
-      options: { emailRedirectTo: `${window.location.origin}/todo-vibecode/` },
+    const { error } = await supabase.auth.signInWithPassword({
+      email: trimmedEmail,
+      password,
     });
 
     if (error) {
@@ -307,7 +308,28 @@ export default function App() {
       return;
     }
 
-    setAuthInfo("Письмо отправлено. Открой magic link в почте, чтобы войти.");
+    setAuthInfo("Вы вошли.");
+  }
+
+  async function signUp() {
+    if (!isSupabaseReady) return;
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) return;
+
+    setAuthError("");
+    setAuthInfo("");
+
+    const { error } = await supabase.auth.signUp({
+      email: trimmedEmail,
+      password,
+    });
+
+    if (error) {
+      setAuthError(error.message);
+      return;
+    }
+
+    setAuthInfo("Регистрация успешна. Теперь войдите.");
   }
 
   async function signOut() {
@@ -343,9 +365,9 @@ export default function App() {
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
           <div>
-            <h1 style={{ margin: 0, fontSize: 26, letterSpacing: 0.2 }}>ToDo — вайбкодинг ✨</h1>
+            <h1 style={{ margin: 0, fontSize: 26, letterSpacing: 0.2 }}>Список дел</h1>
             <p style={{ marginTop: 6, color: "#9aa3b2", fontSize: 13 }}>
-              Добавляй задачи, отмечай выполненное, удаляй — всё в реальном времени.
+              Добавляй задачи и отмечай выполненное — всё под рукой.
             </p>
           </div>
           <div style={{ fontSize: 12, color: "#9aa3b2", whiteSpace: "nowrap" }}>
@@ -365,8 +387,8 @@ export default function App() {
           {!isSupabaseReady ? (
             <div style={{ fontSize: 12, color: "#8b96a8" }}>
               Supabase не настроен. Добавь <code style={{ color: "#cfd6e3" }}>VITE_SUPABASE_URL</code> и{" "}
-              <code style={{ color: "#cfd6e3" }}>VITE_SUPABASE_ANON_KEY</code> в <code style={{ color: "#cfd6e3" }}>.env</code>, и
-              перезапусти dev-сервер.
+              <code style={{ color: "#cfd6e3" }}>VITE_SUPABASE_ANON_KEY</code> в env (локально — через{" "}
+              <code style={{ color: "#cfd6e3" }}>.env</code>, на GitHub Pages — через build env), и перезапусти dev-сервер.
             </div>
           ) : user ? (
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
@@ -393,8 +415,26 @@ export default function App() {
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMagicLink()}
-                placeholder="email для magic link"
+                onKeyDown={(e) => e.key === "Enter" && signIn()}
+                placeholder="email"
+                style={{
+                  flex: 1,
+                  minWidth: 220,
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "#141922",
+                  color: "#e7eaf0",
+                  outline: "none",
+                  fontSize: 13,
+                }}
+              />
+              <input
+                value={password}
+                type="password"
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && signIn()}
+                placeholder="password"
                 style={{
                   flex: 1,
                   minWidth: 220,
@@ -408,7 +448,7 @@ export default function App() {
                 }}
               />
               <button
-                onClick={sendMagicLink}
+                onClick={signIn}
                 style={{
                   padding: "10px 12px",
                   borderRadius: 12,
@@ -420,7 +460,22 @@ export default function App() {
                   fontWeight: 700,
                 }}
               >
-                Войти (OTP)
+                Войти
+              </button>
+              <button
+                onClick={signUp}
+                style={{
+                  padding: "10px 12px",
+                  borderRadius: 12,
+                  border: "1px solid rgba(255,255,255,0.08)",
+                  background: "transparent",
+                  color: "#cfd6e3",
+                  cursor: "pointer",
+                  fontSize: 13,
+                  fontWeight: 700,
+                }}
+              >
+                Регистрация
               </button>
               <div style={{ width: "100%" }}>
                 {authError ? <div style={{ marginTop: 8, fontSize: 12, color: "#ffb4b4" }}>{authError}</div> : null}
@@ -440,7 +495,7 @@ export default function App() {
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && addTask()}
-            placeholder="Например: выучить React за 10 минут"
+            placeholder="Например: сделать 1 маленький шаг сегодня"
             style={{
               flex: 1,
               padding: "12px 14px",
